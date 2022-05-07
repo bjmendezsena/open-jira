@@ -9,6 +9,14 @@ type EntriesActionType =
   | {
       type: "[Entry]- Entry-Updated";
       payload: Entry;
+    }
+  | {
+      type: "[Entry]- Refresh-data";
+      payload: Entry[];
+    }
+  | {
+      type: "[Entry]- SET-IS-LOADING";
+      payload: boolean;
     };
 
 export const entriesReducer = (
@@ -32,7 +40,17 @@ export const entriesReducer = (
           return entry;
         }),
       };
+    case "[Entry]- Refresh-data":
+      return {
+        ...state,
+        entries: [...action.payload],
+      };
 
+    case "[Entry]- SET-IS-LOADING":
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
     default:
       return state;
   }

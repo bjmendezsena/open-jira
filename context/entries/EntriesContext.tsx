@@ -3,6 +3,7 @@ import { Entry } from "../../interfaces";
 
 interface ContextProps {
   entries: Entry[];
+  isLoading: boolean;
   addEntry: (description: string) => void;
   updateEntry: (entry: Entry) => void;
 }

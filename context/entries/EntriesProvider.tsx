@@ -1,54 +1,68 @@
-import { FC, useReducer } from "react";
+import { FC, useReducer, useEffect } from "react";
 import { v4 as uuid } from "uuid";
+import { entriesApi } from "../../apis";
 import { Entry } from "../../interfaces";
 import { EntriesContext, entriesReducer } from "./";
 
 export interface EntriesState {
   entries: Entry[];
+  isLoading: boolean;
 }
 
 const ENTRIES_INITIAL_STATE: EntriesState = {
-  entries: [
-    {
-      _id: uuid(),
-      description:
-        "Pending: Nulla amet deserunt culpa aliqua laboris pariatur culpa et eiusmod laborum ullamco esse mollit reprehenderit.",
-      status: "pending",
-      createdAt: Date.now(),
-    },
-    {
-      _id: uuid(),
-      description:
-        "In-progress: Cupidatat Lorem quis exercitation Lorem culpa quis occaecat mollit velit ad.",
-      status: "in-progress",
-      createdAt: Date.now() - 1000000,
-    },
-    {
-      _id: uuid(),
-      description:
-        "Finished: Id adipisicing excepteur est ex laborum mollit mollit ex et non.",
-      status: "finished",
-      createdAt: Date.now() - 100000,
-    },
-  ],
+  entries: [],
+  isLoading: false,
 };
 
 export const EntriesProvider: FC = ({ children }) => {
   const [state, dispatch] = useReducer(entriesReducer, ENTRIES_INITIAL_STATE);
 
-  const addEntry = (description: string) => {
-    console.log("addEntry");
-    const newEntry: Entry = {
-      _id: uuid(),
-      description,
-      status: "pending",
-      createdAt: Date.now(),
-    };
-    dispatch({ type: "[Entry]- Add-Entry", payload: newEntry });
+  const refreshEntries = async () => {
+    setIsLoading(true);
+    try {
+      const { data } = await entriesApi.get<Entry[]>("/entries");
+      dispatch({ type: "[Entry]- Refresh-data", payload: data });
+    } catch (error) {}
+    setIsLoading(false);
+  };
+  useEffect(() => {
+    refreshEntries();
+  }, []);
+
+  const addEntry = async (description: string) => {
+    setIsLoading(true);
+    try {
+      
+      const { data } = await entriesApi.post<Entry>("/entries", {
+        description,
+      });
+      
+      dispatch({ type: "[Entry]- Add-Entry", payload: data });
+    } catch (error) {
+      console.log(error);
+    }
+    setIsLoading(false);
   };
 
-  const updateEntry = (entry: Entry) => {
-    dispatch({ type: "[Entry]- Entry-Updated", payload: entry });
+  const updateEntry = async ({_id, description, status}: Entry) => {
+    setIsLoading(true);
+    try {
+      const { data } = await entriesApi.put<Entry>(
+        `/entries/${_id}`,
+        {
+          description: description,
+          status: status,
+        }
+      );
+      dispatch({ type: "[Entry]- Entry-Updated", payload: data });
+    } catch (error) {
+      console.log(error);
+    }
+    setIsLoading(false);
+  };
+
+  const setIsLoading = (isLoading: boolean) => {
+    dispatch({ type: "[Entry]- SET-IS-LOADING", payload: isLoading });
   };
 
   return (
