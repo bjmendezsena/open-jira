@@ -22,7 +22,9 @@ export const EntriesProvider: FC = ({ children }) => {
     try {
       const { data } = await entriesApi.get<Entry[]>("/entries");
       dispatch({ type: "[Entry]- Refresh-data", payload: data });
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+    }
     setIsLoading(false);
   };
   useEffect(() => {
