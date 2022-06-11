@@ -1,5 +1,5 @@
 import { FC, useReducer, useEffect } from "react";
-import { v4 as uuid } from "uuid";
+import { useSnackbar } from "notistack";
 import { entriesApi } from "../../apis";
 import { Entry } from "../../interfaces";
 import { EntriesContext, entriesReducer } from "./";
@@ -16,6 +16,8 @@ const ENTRIES_INITIAL_STATE: EntriesState = {
 
 export const EntriesProvider: FC = ({ children }) => {
   const [state, dispatch] = useReducer(entriesReducer, ENTRIES_INITIAL_STATE);
+
+  const { enqueueSnackbar } = useSnackbar();
 
   const refreshEntries = async () => {
     setIsLoading(true);
@@ -34,11 +36,10 @@ export const EntriesProvider: FC = ({ children }) => {
   const addEntry = async (description: string) => {
     setIsLoading(true);
     try {
-      
       const { data } = await entriesApi.post<Entry>("/entries", {
         description,
       });
-      
+
       dispatch({ type: "[Entry]- Add-Entry", payload: data });
     } catch (error) {
       console.log(error);
@@ -46,17 +47,27 @@ export const EntriesProvider: FC = ({ children }) => {
     setIsLoading(false);
   };
 
-  const updateEntry = async ({_id, description, status}: Entry) => {
+  const updateEntry = async (
+    { _id, description, status }: Entry,
+    showSnackbar = false
+  ) => {
     setIsLoading(true);
     try {
-      const { data } = await entriesApi.put<Entry>(
-        `/entries/${_id}`,
-        {
-          description: description,
-          status: status,
-        }
-      );
+      const { data } = await entriesApi.put<Entry>(`/entries/${_id}`, {
+        description: description,
+        status: status,
+      });
       dispatch({ type: "[Entry]- Entry-Updated", payload: data });
+      if (showSnackbar) {
+        enqueueSnackbar("Entrada actualizada", {
+          variant: "success",
+          autoHideDuration: 1500,
+          anchorOrigin: {
+            vertical: "top",
+            horizontal: "right",
+          },
+        });
+      }
     } catch (error) {
       console.log(error);
     }

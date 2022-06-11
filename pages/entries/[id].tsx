@@ -1,4 +1,4 @@
-import React, { useState, useMemo, FC } from "react";
+import React, { useState, useMemo, FC, useContext } from "react";
 import { GetServerSideProps } from "next";
 import {
   Card,
@@ -18,20 +18,22 @@ import {
 } from "@mui/material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import { dbEntries } from "../../database";
 import { Layout } from "../../components/layouts/Layout";
-import { EntryStatus } from "../../interfaces";
-
-import {isValidObjectId} from 'mongoose'
+import { Entry, EntryStatus } from "../../interfaces";
+import { EntriesContext } from "../../context";
+import { dateFunctions } from "../../utils";
 
 const ValidStatus: EntryStatus[] = ["pending", "in-progress", "finished"];
 
-interface Props{
-
+interface Props {
+  entry: Entry;
 }
 
-const EntryPage:FC<Props> = (props) => {
-  const [inputValue, setInputValue] = useState<string>("");
-  const [status, setStatus] = useState<EntryStatus>("pending");
+const EntryPage: FC<Props> = ({ entry }) => {
+  const { updateEntry } = useContext(EntriesContext);
+  const [inputValue, setInputValue] = useState<string>(entry.description);
+  const [status, setStatus] = useState<EntryStatus>(entry.status);
   const [touched, setTouched] = useState(false);
 
   const isNotValid = useMemo(
@@ -48,19 +50,26 @@ const EntryPage:FC<Props> = (props) => {
   };
 
   const onSave = () => {
-    console.log("save");
+    if (inputValue.trim().length === 0) return;
+
+    const updatedEntry: Entry = {
+      ...entry,
+      status,
+      description: inputValue,
+    };
+    updateEntry(updatedEntry, true);
   };
 
   const disabled = inputValue.length <= 0;
 
   return (
-    <Layout title='....'>
+    <Layout title={`${inputValue.substring(0, 20)}...`}>
       <Grid container justifyContent='center' sx={{ marginTop: 2 }}>
         <Grid item xs={12} sm={8} md={6}>
           <Card>
             <CardHeader
-              title={`Entrada: ${inputValue}`}
-              subheader={`Creada hace ...`}
+              title='Entrada:'
+              subheader={dateFunctions.getFormatDistanceToNow(entry.createdAt)}
             />
             <CardContent>
               <TextField
@@ -124,20 +133,21 @@ const EntryPage:FC<Props> = (props) => {
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const { id } = params as { id: string };
 
+  const entry = await dbEntries.getEntryById(id);
 
-
-  if(!isValidObjectId(id)){
+  // * Si no tenemos valor en la entrada, hace la redirección
+  if (!entry) {
     return {
-      redirect:{
-        destination: '/',
-        permanent: false
-      }
-    }
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
   }
 
   return {
     props: {
-      id
+      entry,
     },
   };
 };
